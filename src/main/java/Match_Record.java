@@ -1,105 +1,48 @@
-import com.sun.org.apache.regexp.internal.RE;
 import org.apache.commons.lang3.StringUtils;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.update.UpdateRequest;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.reindex.BulkIndexByScrollResponse;
+import org.elasticsearch.index.reindex.UpdateByQueryAction;
+import org.elasticsearch.index.reindex.UpdateByQueryRequestBuilder;
+import org.elasticsearch.script.Script;
+import org.elasticsearch.script.ScriptType;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.transport.RemoteTransportException;
+import org.elasticsearch.transport.client.PreBuiltTransportClient;
 
+import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.sql.*;
-import java.util.Date;
+import java.sql.SQLException;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
+
+import static org.elasticsearch.index.query.QueryBuilders.termQuery;
 
 /**
  * Created by SachinMaurya on 3/23/2017.
  */
-//class Address
-//{
-//    int House_No;
-//    String Country,Area,State,Street,Post_Office;
-//
-//    public Address(int house_No, String country, String area, String state, String street, String post_Office) {
-//        House_No = house_No;
-//        Country = country;
-//        Area = area;
-//        State = state;
-//        Street = street;
-//        Post_Office = post_Office;
-//    }
-//
-//    public Address() {
-//    }
-//}
-class Result
-{
-    double DOB,First_Name,Last_Name,Age,Pincode,License_No,Adhar_No,Permanant_Address,Current_Address;
 
-    boolean is_Same()
-    {
-        int f=0;
-        if(this.First_Name > .9)
-        {
-            f++;
-        }
-        else if(this.Last_Name > .9)
-        {
-            f++;
-        }
-        else if(this.Age > .9)
-        {
-            f++;
-        }
-        else if(this.Pincode > .9)
-        {
-            f++;
-        }
-        else if(this.Permanant_Address > .9)
-        {
-            f++;
-        }
-        else if(this.Current_Address > .9)
-        {
-            f++;
-        }
-        if(f>4)
-            return true;
-        else
-            return false;
-    }
-    public double getDOB() {
-        return DOB;
-    }
-
-    public double getFirst_Name() {
-        return First_Name;
-    }
-
-    public double getLast_Name() {
-        return Last_Name;
-    }
-
-    public double getAge() {
-        return Age;
-    }
-
-    public double getPincode() {
-        return Pincode;
-    }
-
-    public double getLicense_No() {
-        return License_No;
-    }
-
-    public double getAdhar_No() {
-        return Adhar_No;
-    }
-
-    public double getPermanant_Address() {
-        return Permanant_Address;
-    }
-
-    public double getCurrent_Address() {
-        return Current_Address;
-    }
-}
 class Applicant
 {
-    String First_Name,Last_Name,Cust_No,Street,Town;
+    String First_Name;
+    String Last_Name;
+    String Cust_No;
+    String Street;
+    String Town;
+    String Zipcode;
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    String id;
 
     public String getFirst_Name() {
         return First_Name;
@@ -141,15 +84,13 @@ class Applicant
         Town = town;
     }
 
-    public Long getZipcode() {
+    public String getZipcode() {
         return Zipcode;
     }
 
-    public void setZipcode(Long zipcode) {
+    public void setZipcode(String zipcode) {
         Zipcode = zipcode;
     }
-
-    Long Zipcode;
 
 //    public Result Compare_Applicants(Applicant a)
 //    {
@@ -203,81 +144,186 @@ class Applicant
 }
 
 public class Match_Record {
-    public static void main(String []args) throws ClassNotFoundException, SQLException, UnknownHostException {
-        Class.forName("com.mysql.jdbc.Driver");
-        Connection con= DriverManager.getConnection("jdbc:mysql://localhost:3306/customer","root","sachin123@");
-        Statement stmt=con.createStatement();
-        int Size=0,i=1;
-        ResultSet rs=stmt.executeQuery("select count(*) from personal");
-        while(rs.next())
-        {
-            Size=rs.getInt(1);
-            System.out.println(Size);
-        }
-        Applicant record=new Applicant();
-        while(i<Size){
-            rs=stmt.executeQuery("select CUST_NO,FNAME,LNAME,STREET,ZIP,TOWN from personal limit "+i+",1");
-            i++;
-            while (rs.next())
-            {
-                record.setCust_No(rs.getString(1));
-                record.setFirst_Name(rs.getString(2));
-                record.setLast_Name(rs.getString(3));
-                record.setStreet(rs.getString(4));
-                record.setZipcode(rs.getLong(5));
-                record.setTown(rs.getString(6));
-            }
-            rs=stmt.executeQuery("select CUST_NO,FNAME,LNAME,STREET,ZIP,TOWN from personal");
-            while(rs.next())
-            {
-//                if(record.Compare_Strings(record.getCust_No(),rs.getString(1))==1)
-//                {
-//                    if(record.Compare_Strings(record.getFirst_Name(),rs.getString(2))>.9 &&
-//                            record.Compare_Strings(record.getLast_Name(),rs.getString(3))>.9 &&
-//                            record.Compare_Strings(record.getStreet(),rs.getString(4))>.9 &&
-//                            record.Compare_Longs(record.getZipcode(),rs.getLong(5))==1 &&
-//                            record.Compare_Strings(record.getTown(),rs.getString(6))>.9)
-//                    {
-//                        System.out.println("Matching record found"+" "+rs.getString(1)+" "+record.getCust_No());
-//                    }
-//                }
-                if(!record.getCust_No().equals(rs.getString(1)))
-                {
-                    if (record.getFirst_Name().equals(rs.getString(2)))
-                    {
-                        System.out.print("Fname");
-                    }
-                    if(record.getLast_Name().equals(rs.getString(3)))
-                    {
-                        System.out.print("Lname");
-                    }
-                    if(record.getStreet().equals(rs.getString(4)))
-                    {
-                        System.out.print("Street");
-                    }
-                    if(record.getTown().equals(rs.getString(6)))
-                    {
-                        System.out.print("Town");
-                    }
-                    if(record.getZipcode() == rs.getLong(5))
-                    {
-                        System.out.print("Zipcode");
-                    }
-                }
-                System.out.println();
-            }
-        }
-        con.close();
 
-//        TransportClient client = new PreBuiltTransportClient(Settings.EMPTY)
-//                .addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("localhost"), 9300));
+//    public static void checkRecord(SearchResponse sr,Applicant input)
+//    {
+//        for(SearchHit res:sr.getHits())
+//        {
+//            if(input.getFirst_Name().equals(res.getSource().get("FirstName")) && input.getLast_Name().equals(res.getSource().get("LastName"))
+//                    && input.getStreet().equals(res.getSource().get("Street")) && input.getTown().equals(res.getSource().get("Place_of_Residence"))
+//                    && input.getZipcode().equals(res.getSource().get("Zip")))
+//            {
+//                System.out.println("Record is matched with customer id : "+ res.getSource().get("Customer_no"));
+//            }
+//        }
+//    }
+//    public static void checkRecord(PreBuiltTransportClient client,SearchResponse sr,Applicant input,String str) throws ExecutionException, InterruptedException {
 //
-//        client.close();
+//        UpdateRequest updateRequest;
+//        for(SearchHit res:sr.getHits())
+//        {
+//            if(input.getFirst_Name().equals(res.getSource().get("FirstName")) && str.equals("FirstName"))
+//            {
+//                updateRequest = new UpdateRequest("customer", "personal_info",input.getCust_No())
+//                    .script(new Script(ScriptType.INLINE,"painless","ctx._source.check.add(params.data)",f));
+//                client.update(updateRequest).get();
+//            }
+//            else if(input.getLast_Name().equals(res.getSource().get("LastName")) && str.equals("LastName"))
+//            {
+//                System.out.println("Record is matched with customer id : "+ res.getSource().get("Customer_no") + " By LastName");
+//            }
+//            else if(input.getStreet().equals(res.getSource().get("Street")) && str.equals("Street"))
+//            {
+//                System.out.println("Record is matched with customer id : "+ res.getSource().get("Customer_no") + " By Street");
+//            }
+//            else if(input.getTown().equals(res.getSource().get("Place_of_Residence")) && str.equals("Town"))
+//            {
+//                System.out.println("Record is matched with customer id : "+ res.getSource().get("Customer_no") + " By Town");
+//            }
+//            else if(input.getZipcode().equals(res.getSource().get("Zip")) && str.equals("Zip"))
+//            {
+//                System.out.println("Record is matched with customer id : "+ res.getSource().get("Customer_no") + " By Zip");
+//            }
+//        }
+//    }
 
 
-//        Applicant record2=new Applicant();
-//        Result finalResult=record1.Compare_Applicants(record2);
-//        if(finalResult.is_Same())
-//            System.out.println("It can be same Record");
+    public static void updataInput(SearchResponse sr,Applicant input,PreBuiltTransportClient client,String rel) throws ExecutionException, InterruptedException {
+        List<String> l=new ArrayList<String>();
+        UpdateRequest updateRequest;
+        Map<String,Object> f=new HashMap<String, Object>();
+        for(SearchHit res:sr.getHits())
+        {
+            l.add(res.getId());
+        }
+        f.put("data", l);
+        updateRequest = new UpdateRequest("customer", "personal_info",input.getCust_No())
+                .script(new Script(ScriptType.INLINE,"painless","ctx._source."+rel+".add(params.data)",f));
+        try {
+            client.update(updateRequest).get();
+        }catch (RemoteTransportException e){
+           e.printStackTrace();
+        }catch (NullPointerException e){
+            e.printStackTrace();
+        }catch (ExecutionException e){
+
+            updateRequest = new UpdateRequest("customer", "personal_info",input.getId())
+                    .script(new Script(ScriptType.INLINE,"painless","ctx._source."+rel+"=params.data",f));
+            client.update(updateRequest).get();
+        }
+
+        for (String id :
+                l) {
+            f.put("data2",input.getId());
+            try {
+                updateRequest = new UpdateRequest("customer", "personal_info", id)
+                        .script(new Script(ScriptType.INLINE, "painless", "ctx._source."+rel+".add(params.data2)", f));
+                client.update(updateRequest).get();
+            }catch(ExecutionException e){
+                updateRequest = new UpdateRequest("customer", "personal_info",id)
+                        .script(new Script(ScriptType.INLINE,"painless","ctx._source."+rel+"=params.data2",f));
+                client.update(updateRequest).get();
+            }
+
+        }
+    }
+
+    public static void main(String []args) throws ClassNotFoundException, SQLException, UnknownHostException, ExecutionException, InterruptedException {
+//        Class.forName("com.mysql.jdbc.Driver");
+//        Connection con= DriverManager.getConnection("jdbc:mysql://localhost:3306/customer","root","sachin123@");
+//        Statement stmt=con.createStatement();
+//        int Size=0,i=1;
+//        ResultSet rs=stmt.executeQuery("select count(*) from personal limit 100");
+//        while(rs.next())
+//        {
+//            Size=rs.getInt(1);
+//            System.out.println(Size);
+//        }
+//
+//
+//        con.close();
+
+        Applicant input=new Applicant();
+        input.setCust_No("CU00008333343056");
+        input.setFirst_Name("Ömer");
+        input.setLast_Name("Braun");
+        input.setStreet("Fangdieckstraße 14");
+        input.setTown("Koblenz");
+        input.setZipcode("57474  ");
+        input.setId("AVtcqDtr-hedAcx8Wh2Y");
+
+        Settings settings = Settings.builder()
+                .put("cluster.name", "jvmti-cluster")
+                .put("client.transport.sniff", true)
+                .build();
+            PreBuiltTransportClient client = new PreBuiltTransportClient(settings);
+
+            client.addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("localhost"), 9300));
+
+        Map<String,Object> f=new HashMap<String, Object>();
+        f.put("data","hello");
+                UpdateRequest updateRequest = new UpdateRequest("a", "b", "1")
+                .script(new Script(ScriptType.INLINE,"painless","ctx._source.doc=params.data",f));
+        client.update(updateRequest).get();
+
+
+
+        SearchResponse sr=client.prepareSearch("customer").setTypes("personal_info")
+                .setQuery(QueryBuilders.matchQuery("FirstName",input.getFirst_Name()))
+                .execute().get();
+        Match_Record.updataInput(sr,input,client,"first_name_rel");
+        sr=client.prepareSearch("customer").setTypes("personal_info")
+                .setQuery(QueryBuilders.matchQuery("LastName",input.getLast_Name()))
+                .execute().get();
+        Match_Record.updataInput(sr,input,client,"last_name_rel");
+        sr=client.prepareSearch("customer").setTypes("personal_info")
+                .setQuery(QueryBuilders.matchQuery("Street",input.getStreet()))
+                .execute().get();
+        Match_Record.updataInput(sr,input,client,"street_rel");
+        sr=client.prepareSearch("customer").setTypes("personal_info")
+                .setQuery(QueryBuilders.matchQuery("Zip",input.getZipcode()))
+                .execute().get();
+        Match_Record.updataInput(sr,input,client,"zip_rel");
+        sr=client.prepareSearch("customer").setTypes("personal_info")
+                .setQuery(QueryBuilders.matchQuery("Place_of_Residence",input.getTown()))
+                .execute().get();
+        Match_Record.updataInput(sr,input,client,"place_of_residence_rel");
+
+
+        UpdateByQueryRequestBuilder updateByQuery = UpdateByQueryAction.INSTANCE.newRequestBuilder(client);
+
+        f.put("data", input.getCust_No());
+
+        BulkIndexByScrollResponse response=updateByQuery
+                .source("customer")
+                .filter(termQuery("FirstName",input.getFirst_Name()))
+                .script(new Script(ScriptType.INLINE,"painless","ctx._source.FirstName_Rel.add(params.data)",f))
+                .get();
+        response=updateByQuery
+                .source("customer")
+                .filter(termQuery("LastName",input.getLast_Name()))
+                .script(new Script(ScriptType.INLINE,"painless","ctx._source.LastName_Rel.add(params.data)",f))
+                .get();
+        response=updateByQuery
+                .source("customer")
+                .filter(termQuery("Zip",input.getZipcode()))
+                .script(new Script(ScriptType.INLINE,"painless","ctx._source.Zipcode_Rel.add(params.data)",f))
+                .get();
+        response=updateByQuery
+                .source("customer")
+                .filter(termQuery("Place_of_Residence",input.getTown()))
+                .script(new Script(ScriptType.INLINE,"painless","ctx._source.Town_Rel.add(params.data)",f))
+                .get();
+        response=updateByQuery
+                .source("customer")
+                .filter(termQuery("Street",input.getStreet()))
+                .script(new Script(ScriptType.INLINE,"painless","ctx._source.Street_Rel.add(params.data)",f))
+                .get();
+
+//        UpdateRequest updateRequest = new UpdateRequest("a", "b", "1")
+//                .script(new Script(ScriptType.INLINE,"painless","ctx._source.check.add(params.data)",f));
+//        client.update(updateRequest).get();
+
+        client.close();
     }
 }
